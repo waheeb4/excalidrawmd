@@ -215,7 +215,7 @@ After generating the JSON, you MUST run the render-view-fix loop until the diagr
 
 1. **Create the base file** with the JSON wrapper (`type`, `version`, `appState`, `files`) and the first section of elements.
 2. **Add one section per edit.** Each section gets its own dedicated pass — take your time with it. Think carefully about the layout, spacing, and how this section connects to what's already there.
-3. **Use descriptive string IDs** (e.g., `"trigger_rect"`, `"arrow_fan_left"`) so cross-section references are readable.
+3. **Use exactly eight-character IDs** (e.g., `"trig0001"`, `"arrw0001"`) so Obsidian can retain element block references. Use the same IDs in every binding and in `## Text Elements`.
 4. **Namespace seeds by section** (e.g., section 1 uses 100xxx, section 2 uses 200xxx) to avoid collisions.
 5. **Update cross-section bindings** as you go. When a new section's element needs to bind to an element from a previous section (e.g., an arrow connecting sections), edit the earlier element's `boundElements` array at the same time.
 
@@ -420,9 +420,47 @@ Position alone doesn't show relationships. If A relates to B, there must be an a
 
 Settings: `fontSize: 16`, `fontFamily: 3`, `textAlign: "center"`, `verticalAlign: "middle"`
 
+Bind at most one text element to a container. Put subtitles and supporting copy inside the shape as free-floating text with `containerId: null`; Excalidraw may hide additional bound text elements.
+
 ---
 
-## JSON Structure
+## Obsidian File Format
+
+**Default output:** Create an Obsidian-native `.excalidraw.md` file, not a standalone `.excalidraw` JSON file. This preserves compatibility with the Obsidian Excalidraw plugin's metadata, searchable text, and links.
+
+Use this exact outer structure. Put all diagram JSON in the `## Drawing` `json` code block. For each text element, add its readable `originalText` below `## Text Elements` followed by an Obsidian block reference using that element's ID. Leave the section empty when there are no text elements.
+
+~~~~markdown
+---
+excalidraw-plugin: parsed
+---
+
+%%
+# Excalidraw Data
+
+## Text Elements
+
+Diagram title ^title_id
+
+%%
+## Drawing
+```json
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": 20
+  },
+  "files": {}
+}
+```
+%%
+~~~~
+
+## Scene JSON Structure
 
 ```json
 {
@@ -451,10 +489,10 @@ You cannot judge a diagram from JSON alone. After generating or editing the Exca
 ### How to Render
 
 ```bash
-cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path-to-file.excalidraw>
+cd ~/.config/opencode/skills/excalidraw/references && uv run python render_excalidraw.py <path-to-file.excalidraw.md>
 ```
 
-This outputs a PNG next to the `.excalidraw` file. Then use the **Read tool** on the PNG to actually view it.
+This outputs a PNG next to the `.excalidraw.md` file. The renderer also accepts standalone `.excalidraw` JSON files. Then use the **Read tool** on the PNG to actually view it.
 
 ### The Loop
 
@@ -503,9 +541,8 @@ The loop is done when:
 ### First-Time Setup
 If the render script hasn't been set up yet:
 ```bash
-cd .claude/skills/excalidraw-diagram/references
+cd ~/.config/opencode/skills/excalidraw/references
 uv sync
-uv run playwright install chromium
 ```
 
 ---
