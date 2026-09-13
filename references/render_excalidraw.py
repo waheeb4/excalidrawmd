@@ -1,19 +1,19 @@
 """Render Excalidraw JSON to PNG using Playwright + headless Chromium.
 
 Usage:
-    cd .claude/skills/excalidraw-diagram/references
+    cd ~/.config/opencode/skills/excalidraw/references
     uv run python render_excalidraw.py <path-to-file.excalidraw> [--output path.png] [--scale 2] [--width 1920]
 
 First-time setup:
-    cd .claude/skills/excalidraw-diagram/references
+    cd ~/.config/opencode/skills/excalidraw/references
     uv sync
-    uv run playwright install chromium
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -33,6 +33,25 @@ def validate_excalidraw(data: dict) -> list[str]:
         errors.append("'elements' array is empty — nothing to render")
 
     return errors
+
+
+def extract_excalidraw_json(raw: str) -> str:
+    """Extract the scene JSON from a native or Obsidian Excalidraw file."""
+    if raw.lstrip().startswith("{"):
+        return raw
+
+    match = re.search(
+        r"^##? Drawing\r?\n[^`]*?```json\r?\n([\s\S]*?)```",
+        raw,
+        re.MULTILINE,
+    )
+    if match:
+        return match.group(1)
+
+    raise ValueError(
+        "No JSON scene found. Expected a native .excalidraw file or an Obsidian "
+        "'Drawing' section."
+    )
 
 
 def compute_bounding_box(elements: list[dict]) -> tuple[float, float, float, float]:
@@ -81,15 +100,18 @@ def render(
         from playwright.sync_api import sync_playwright
     except ImportError:
         print("ERROR: playwright not installed.", file=sys.stderr)
-        print("Run: cd .claude/skills/excalidraw-diagram/references && uv sync && uv run playwright install chromium", file=sys.stderr)
+        print("Run: cd ~/.config/opencode/skills/excalidraw/references && uv sync", file=sys.stderr)
         sys.exit(1)
 
     # Read and validate
     raw = excalidraw_path.read_text(encoding="utf-8")
     try:
-        data = json.loads(raw)
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Invalid JSON in {excalidraw_path}: {e}", file=sys.stderr)
+        data = json.loads(extract_excalidraw_json(raw))
+    except (json.JSONDecodeError, ValueError) as e:
+        print(
+            f"ERROR: Could not read Excalidraw data from {excalidraw_path}: {e}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     errors = validate_excalidraw(data)
@@ -124,11 +146,14 @@ def render(
 
     with sync_playwright() as p:
         try:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(
+                headless=True,
+                executable_path="/opt/brave.com/brave-origin/brave-origin",
+            )
         except Exception as e:
             if "Executable doesn't exist" in str(e) or "browserType.launch" in str(e):
-                print("ERROR: Chromium not installed for Playwright.", file=sys.stderr)
-                print("Run: cd .claude/skills/excalidraw-diagram/references && uv run playwright install chromium", file=sys.stderr)
+                print("ERROR: Brave could not be launched by Playwright.", file=sys.stderr)
+                print("Expected: /opt/brave.com/brave-origin/brave-origin", file=sys.stderr)
                 sys.exit(1)
             raise
 
@@ -171,7 +196,7 @@ def render(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Render Excalidraw JSON to PNG")
-    parser.add_argument("input", type=Path, help="Path to .excalidraw JSON file")
+    parser.add_argument("input", type=Path, help="Path to an .excalidraw or .excalidraw.md file")
     parser.add_argument("--output", "-o", type=Path, default=None, help="Output PNG path (default: same name with .png)")
     parser.add_argument("--scale", "-s", type=int, default=2, help="Device scale factor (default: 2)")
     parser.add_argument("--width", "-w", type=int, default=1920, help="Max viewport width (default: 1920)")
