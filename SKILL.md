@@ -1,5 +1,5 @@
 ---
-name: excalidraw-diagram
+name: excalidrawmd
 description: Create Excalidraw diagram JSON files that make visual arguments. Use when the user wants to visualize workflows, architectures, or concepts.
 ---
 
@@ -418,7 +418,9 @@ Position alone doesn't show relationships. If A relates to B, there must be an a
 }
 ```
 
-Settings: `fontSize: 16`, `fontFamily: 3`, `textAlign: "center"`, `verticalAlign: "middle"`
+Settings: `fontSize: 16`, `fontFamily: 5` *(Excalifont)*, `textAlign: "center"`, `verticalAlign: "middle"`
+
+**Font:** Always use `fontFamily: 5` *(Excalifont)* for every text element.
 
 Bind at most one text element to a container. Put subtitles and supporting copy inside the shape as free-floating text with `containerId: null`; Excalidraw may hide additional bound text elements.
 
@@ -426,7 +428,7 @@ Bind at most one text element to a container. Put subtitles and supporting copy 
 
 ## Obsidian File Format
 
-**Default output:** Create an Obsidian-native `.excalidraw.md` file, not a standalone `.excalidraw` JSON file. This preserves compatibility with the Obsidian Excalidraw plugin's metadata, searchable text, and links.
+**Default output:** Create an Obsidian-native `.excalidraw.md` file in the vault's `Drawings/` directory, not a standalone `.excalidraw` JSON file. This preserves compatibility with the Obsidian Excalidraw plugin's metadata, searchable text, and links. Honor an explicit user-supplied output path instead.
 
 Use this exact outer structure. Put all diagram JSON in the `## Drawing` `json` code block. For each text element, add its readable `originalText` below `## Text Elements` followed by an Obsidian block reference using that element's ID. Leave the section empty when there are no text elements.
 
@@ -574,7 +576,7 @@ uv sync
 
 ### Technical
 16. **Text clean**: `text` contains only readable words
-17. **Font**: `fontFamily: 3`
+17. **Font**: every text element uses `fontFamily: 5` *(Excalifont)*
 18. **Roughness**: `roughness: 0` for clean/modern (unless hand-drawn style requested)
 19. **Opacity**: `opacity: 100` for all elements (no transparency)
 20. **Container ratio**: <30% of text elements should be inside containers
